@@ -1,4 +1,4 @@
-markdown# 🎬 VCIA — Video Content Intelligence & Analysis Platform
+# 🎬 VCIA — Video Content Intelligence & Analysis Platform
 
 > AI-Powered Video Scene Analysis, Segmentation & Export Workflow
 
@@ -65,6 +65,15 @@ The backend performs:
 
 ...using OpenCV-powered processing.
 
+## 🖼 Screenshots
+
+### Main Upload Interface
+![Upload Interface](docs/screenshots/upload-interface.png)
+
+### Analysis Progress Dashboard
+![Progress Dashboard](docs/screenshots/progress-dashboard.png)
+
+
 ### 📊 Real-Time Progress Tracking
 
 Users can monitor metadata reading, analysis progress, frame processing, and export workflow in real time.
@@ -127,7 +136,8 @@ vcia/
 ├── docs/
 ├── electron/
 ├── README.md
-└── .gitignore
+└── .gitignore<img width="1920" height="1080" alt="vcia (1)" src="https://github.com/user-attachments/assets/40368cad-8eba-4ea6-b429-f8447459e9a0" />
+
 
 ---
 
