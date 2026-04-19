@@ -68,10 +68,10 @@ The backend performs:
 ## 🖼 Screenshots
 
 ### Main Upload Interface
-![Upload Interface](docs/screenshots/upload-interface.png)
+![Upload Interface](screenshots/upload-interface.png)
 
 ### Analysis Progress Dashboard
-![Progress Dashboard](docs/screenshots/progress-dashboard.png)
+![Progress Dashboard](screenshots/progress-dashboard.png)
 
 
 ### 📊 Real-Time Progress Tracking
