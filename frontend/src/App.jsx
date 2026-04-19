@@ -8,131 +8,341 @@ import SceneList from "./components/SceneList";
 import ExportPanel from "./components/ExportPanel";
 import StatsSummary from "./components/StatsSummary";
 
-export default function App() {
-  const { jobId, status, progress, stage, result, error, filename, submit, reset } = useAnalysis();
-  const [selectedFrame, setSelectedFrame] = useState(null);
+const API_DOCS = import.meta.env.VITE_API_URL
+  ? `${import.meta.env.VITE_API_URL}/api/docs`
+  : "http://localhost:8000/api/docs";
 
-  const isProcessing = status === "uploading" || status === "processing";
-  const isComplete = status === "complete";
+// Result tabs used on mobile to navigate between panels
+const RESULT_TABS = [
+  { id: "timeline",  label: "Timeline"  },
+  { id: "scenes",    label: "Scenes"    },
+  { id: "inspector", label: "Inspector" },
+  { id: "export",    label: "Export"    },
+];
+
+export default function App() {
+  const {
+    jobId, status, progress, uploadPct,
+    stage, result, error, filename, submit, reset,
+    isProcessing, isComplete, isIdle, isError,
+  } = useAnalysis();
+
+  const [selectedFrame, setSelectedFrame] = useState(null);
+  const [activeTab, setActiveTab] = useState("timeline");
 
   return (
-    <div style={styles.app}>
-      <div style={styles.scanline} />
-      <header style={styles.header}>
-        <div style={styles.logo}>
-          <span style={styles.logoIcon}>◈</span>
-          <div>
-            <div style={styles.logoTitle}>Video Color Intelligence</div>
-            <div style={styles.logoSub}>Analyzer</div>
+    <div className="app-shell">
+      {/* ── Header ─────────────────────────────────── */}
+      <header className="app-header">
+        <div style={S.logo}>
+          <span style={S.logoIcon}>◈</span>
+          <div style={S.logoText}>
+            <div style={S.logoTitle}>Color Intelligence</div>
+            <div style={S.logoSub}>Analyzer</div>
           </div>
         </div>
-        <div style={styles.headerRight}>
+
+        <div style={S.headerRight}>
           {isComplete && (
-            <button style={styles.resetBtn} onClick={reset}>← New Analysis</button>
+            <button style={S.resetBtn} onClick={reset} aria-label="Start new analysis">
+              ← New
+            </button>
           )}
-          <a href="http://localhost:8000/docs" target="_blank" rel="noreferrer" style={styles.apiLink}>API Docs ↗</a>
+          <a
+            href={API_DOCS}
+            target="_blank"
+            rel="noreferrer"
+            style={S.apiLink}
+            aria-label="API documentation"
+          >
+            API ↗
+          </a>
         </div>
       </header>
 
-      <main style={styles.main}>
-        <aside style={styles.sidebar}>
+      {/* ── Main ───────────────────────────────────── */}
+      <main className="app-main">
+
+        {/* ── Sidebar ──────────────────────────────── */}
+        <aside className="app-sidebar">
+          {/* Upload — shown when idle or processing */}
           {!isComplete && (
-            <div style={styles.card}>
+            <div className="card">
               <UploadPanel onSubmit={submit} loading={isProcessing} />
             </div>
           )}
+
+          {/* Progress bar */}
           {isProcessing && (
             <div className="fade-up">
-              <ProgressBar progress={progress} stage={stage} filename={filename} />
+              <ProgressBar
+                progress={progress}
+                uploadPct={uploadPct}
+                stage={stage}
+                filename={filename}
+              />
             </div>
           )}
-          {status === "error" && (
-            <div style={styles.errorCard} className="fade-up">
-              <div style={styles.errorTitle}>Analysis failed</div>
-              <div style={styles.errorMsg}>{error}</div>
-              <button style={styles.retryBtn} onClick={reset}>Try again</button>
+
+          {/* Error state */}
+          {isError && (
+            <div style={S.errorCard} className="fade-up" role="alert">
+              <div style={S.errorTitle}>Analysis failed</div>
+              <div style={S.errorMsg}>{error}</div>
+              <button style={S.retryBtn} onClick={reset}>Try again</button>
             </div>
           )}
+
+          {/* On desktop: frame inspector + export live in sidebar when complete */}
           {isComplete && (
-            <div style={styles.card}>
-              <FrameInspector frame={selectedFrame} />
-            </div>
+            <>
+              <div className="card desktop-only">
+                <FrameInspector frame={selectedFrame} />
+              </div>
+              <div className="desktop-only">
+                {jobId && <ExportPanel jobId={jobId} />}
+              </div>
+            </>
           )}
-          {isComplete && jobId && <ExportPanel jobId={jobId} />}
         </aside>
 
-        <section style={styles.content}>
-          {status === "idle" && (
-            <div style={styles.welcome} className="fade-up">
-              <div style={styles.welcomeGlow} />
-              <div style={styles.welcomeIcon}>◈</div>
-              <h1 style={styles.welcomeTitle}>Color Intelligence<br />for Video</h1>
-              <p style={styles.welcomeDesc}>
-                Upload a video to extract dominant colors, detect scene changes,
-                visualize color progressions, and export palettes in any format.
+        {/* ── Mobile result tabs (shown only when complete on small screens) ── */}
+        {isComplete && (
+          <nav className="mobile-tabs" role="tablist" aria-label="Results sections">
+            {RESULT_TABS.map(tab => (
+              <button
+                key={tab.id}
+                role="tab"
+                aria-selected={activeTab === tab.id}
+                className={`mobile-tab ${activeTab === tab.id ? "active" : ""}`}
+                onClick={() => setActiveTab(tab.id)}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </nav>
+        )}
+
+        {/* ── Content ──────────────────────────────── */}
+        <section className="app-content" aria-live="polite">
+
+          {/* Welcome / idle state */}
+          {isIdle && (
+            <div style={S.welcome} className="fade-up">
+              <div style={S.welcomeGlow} aria-hidden />
+              <div style={S.welcomeIcon} aria-hidden>◈</div>
+              <h1 style={S.welcomeTitle}>
+                Color Intelligence<br />for Video
+              </h1>
+              <p style={S.welcomeDesc}>
+                Upload a video to extract dominant colors, detect scene
+                changes, visualize color progressions, and export palettes.
               </p>
-              <div style={styles.featureList}>
-                {["K-Means color clustering", "Scene boundary detection", "Timeline visualization", "5 export formats", "Mood classification"].map((f, i) => (
-                  <div key={i} style={styles.featureItem}><span style={styles.featureDot}>·</span><span>{f}</span></div>
+              <ul style={S.featureList} aria-label="Features">
+                {[
+                  "K-Means color clustering",
+                  "Scene boundary detection",
+                  "Timeline visualization",
+                  "5 export formats",
+                  "Mood classification",
+                ].map((f, i) => (
+                  <li key={i} style={S.featureItem}>
+                    <span style={S.featureDot} aria-hidden>·</span>
+                    <span>{f}</span>
+                  </li>
                 ))}
-              </div>
+              </ul>
             </div>
           )}
 
+          {/* Processing state */}
           {isProcessing && (
-            <div style={styles.processingState} className="fade-up">
-              <div style={styles.processingAnim}>
-                {Array.from({ length: 12 }).map((_, i) => (
-                  <div key={i} style={{ ...styles.processingBar, height: `${25 + (i % 4) * 20}%`, animationDelay: `${i * 0.1}s`, background: `hsl(${i * 30}, 70%, 60%)` }} />
+            <div style={S.processingState} className="fade-up" aria-busy="true">
+              <div style={S.processingAnim} aria-hidden>
+                {Array.from({ length: 10 }).map((_, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      ...S.processingBar,
+                      height: `${20 + (i % 5) * 16}%`,
+                      animationDelay: `${i * 0.12}s`,
+                      background: `hsl(${i * 36}, 70%, 60%)`,
+                    }}
+                  />
                 ))}
               </div>
-              <div style={styles.processingLabel}>Extracting color intelligence…</div>
+              <div style={S.processingLabel}>Extracting color intelligence…</div>
+              <div style={S.processingStage}>{stage}</div>
             </div>
           )}
 
+          {/* Results — desktop shows all, mobile shows active tab */}
           {isComplete && result && (
-            <div style={styles.results} className="fade-up">
-              <StatsSummary metadata={result.metadata} frames={result.frames} scenes={result.scenes} />
-              <ColorTimeline frames={result.frames} scenes={result.scenes} selectedFrame={selectedFrame} onSelectFrame={setSelectedFrame} />
-              <SceneList scenes={result.scenes} frames={result.frames} onSelectScene={() => {}} />
+            <div style={S.results} className="fade-up">
+              {/* Stats always visible on all sizes */}
+              <StatsSummary
+                metadata={result.metadata}
+                frames={result.frames}
+                scenes={result.scenes}
+              />
+
+              {/* Timeline — always visible on desktop; tab on mobile */}
+              <div className={activeTab === "timeline" ? "" : "mobile-hidden"}>
+                <ColorTimeline
+                  frames={result.frames}
+                  scenes={result.scenes}
+                  selectedFrame={selectedFrame}
+                  onSelectFrame={(f) => { setSelectedFrame(f); setActiveTab("inspector"); }}
+                />
+              </div>
+
+              {/* Scenes — always on desktop; tab on mobile */}
+              <div className={activeTab === "scenes" ? "" : "mobile-hidden"}>
+                <SceneList
+                  scenes={result.scenes}
+                  frames={result.frames}
+                  onSelectScene={() => {}}
+                />
+              </div>
+
+              {/* Inspector — mobile tab only (desktop is in sidebar) */}
+              <div className={`mobile-only ${activeTab === "inspector" ? "" : "mobile-hidden"}`}>
+                <div className="card">
+                  <FrameInspector frame={selectedFrame} />
+                </div>
+              </div>
+
+              {/* Export — mobile tab only (desktop is in sidebar) */}
+              <div className={`mobile-only ${activeTab === "export" ? "" : "mobile-hidden"}`}>
+                {jobId && <ExportPanel jobId={jobId} />}
+              </div>
             </div>
           )}
+
         </section>
       </main>
+
+      {/* Responsive show/hide helpers via <style> */}
+      <style>{`
+        .desktop-only { display: none; }
+        .mobile-only  { display: block; }
+        .mobile-hidden { display: none !important; }
+        @media (min-width: 900px) {
+          .desktop-only { display: block; }
+          .mobile-only  { display: none; }
+          .mobile-hidden { display: block !important; }
+        }
+      `}</style>
     </div>
   );
 }
 
-const styles = {
-  app: { minHeight: "100vh", display: "flex", flexDirection: "column", position: "relative", overflow: "hidden" },
-  scanline: { position: "fixed", top: 0, left: 0, right: 0, height: "2px", background: "linear-gradient(90deg, transparent, var(--accent), transparent)", opacity: 0.3, pointerEvents: "none", zIndex: 100 },
-  header: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 24px", borderBottom: "1px solid var(--border)", background: "var(--bg-surface)", position: "sticky", top: 0, zIndex: 50 },
-  logo: { display: "flex", alignItems: "center", gap: 12 },
-  logoIcon: { fontSize: 28, color: "var(--accent)", lineHeight: 1 },
-  logoTitle: { fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 16, color: "var(--text-primary)", lineHeight: 1.1 },
-  logoSub: { fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.15em" },
-  headerRight: { display: "flex", alignItems: "center", gap: 12 },
-  resetBtn: { padding: "6px 14px", background: "var(--bg-elevated)", border: "1px solid var(--border-active)", borderRadius: 6, color: "var(--text-secondary)", cursor: "pointer", fontFamily: "var(--font-mono)", fontSize: 11 },
-  apiLink: { color: "var(--text-muted)", fontFamily: "var(--font-mono)", fontSize: 10, textDecoration: "none", padding: "4px 8px", borderRadius: 4, border: "1px solid var(--border)" },
-  main: { display: "grid", gridTemplateColumns: "340px 1fr", gap: 0, flex: 1, minHeight: 0 },
-  sidebar: { borderRight: "1px solid var(--border)", padding: "20px 16px", display: "flex", flexDirection: "column", gap: 16, overflowY: "auto", background: "var(--bg-surface)", maxHeight: "calc(100vh - 57px)" },
-  content: { padding: "20px 24px", overflowY: "auto", maxHeight: "calc(100vh - 57px)" },
-  card: { background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", padding: "16px" },
-  errorCard: { background: "rgba(252,92,124,0.08)", border: "1px solid rgba(252,92,124,0.25)", borderRadius: "var(--radius)", padding: "16px", display: "flex", flexDirection: "column", gap: 8 },
-  errorTitle: { fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13, color: "var(--error)" },
-  errorMsg: { fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-secondary)", wordBreak: "break-all" },
-  retryBtn: { padding: "6px 14px", background: "none", border: "1px solid var(--error)", borderRadius: 6, color: "var(--error)", cursor: "pointer", fontFamily: "var(--font-mono)", fontSize: 11, alignSelf: "flex-start" },
-  welcome: { display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "70vh", textAlign: "center", position: "relative", gap: 20 },
-  welcomeGlow: { position: "absolute", width: 400, height: 400, borderRadius: "50%", background: "radial-gradient(circle, rgba(124,92,252,0.12) 0%, transparent 70%)", pointerEvents: "none" },
-  welcomeIcon: { fontSize: 56, color: "var(--accent)", opacity: 0.8 },
-  welcomeTitle: { fontFamily: "var(--font-display)", fontSize: 36, fontWeight: 800, lineHeight: 1.15, color: "var(--text-primary)", letterSpacing: "-0.02em" },
-  welcomeDesc: { fontFamily: "var(--font-mono)", fontSize: 13, color: "var(--text-secondary)", maxWidth: 440, lineHeight: 1.7 },
-  featureList: { display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-start", marginTop: 4 },
-  featureItem: { display: "flex", alignItems: "center", gap: 8, fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-muted)" },
-  featureDot: { color: "var(--accent)", fontSize: 18 },
-  processingState: { display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "70vh", gap: 24 },
-  processingAnim: { display: "flex", alignItems: "flex-end", gap: 4, height: 100 },
-  processingBar: { width: 12, borderRadius: 4, animation: "pulse 1.2s ease-in-out infinite alternate" },
-  processingLabel: { fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-muted)", animation: "pulse 2s ease-in-out infinite" },
-  results: { display: "flex", flexDirection: "column", gap: 20 },
+const S = {
+  /* Header */
+  logo: { display: "flex", alignItems: "center", gap: 10, minWidth: 0 },
+  logoIcon: { fontSize: 24, color: "var(--accent)", lineHeight: 1, flexShrink: 0 },
+  logoText: { minWidth: 0, overflow: "hidden" },
+  logoTitle: {
+    fontFamily: "var(--font-display)", fontWeight: 800,
+    fontSize: "clamp(13px, 3vw, 16px)", color: "var(--text-primary)",
+    lineHeight: 1.1, whiteSpace: "nowrap",
+  },
+  logoSub: {
+    fontFamily: "var(--font-mono)", fontSize: 9,
+    color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.15em",
+  },
+  headerRight: { display: "flex", alignItems: "center", gap: 8, flexShrink: 0 },
+  resetBtn: {
+    padding: "7px 12px", background: "var(--bg-elevated)",
+    border: "1px solid var(--border-active)", borderRadius: 6,
+    color: "var(--text-secondary)", cursor: "pointer",
+    fontFamily: "var(--font-mono)", fontSize: 12,
+    minHeight: 36, whiteSpace: "nowrap",
+  },
+  apiLink: {
+    color: "var(--text-muted)", fontFamily: "var(--font-mono)", fontSize: 11,
+    textDecoration: "none", padding: "6px 10px", borderRadius: 4,
+    border: "1px solid var(--border)", minHeight: 36,
+    display: "flex", alignItems: "center",
+  },
+
+  /* Error */
+  errorCard: {
+    background: "rgba(252,92,124,0.08)", border: "1px solid rgba(252,92,124,0.25)",
+    borderRadius: "var(--radius)", padding: 16,
+    display: "flex", flexDirection: "column", gap: 10,
+  },
+  errorTitle: {
+    fontFamily: "var(--font-display)", fontWeight: 700,
+    fontSize: 13, color: "var(--error)",
+  },
+  errorMsg: {
+    fontFamily: "var(--font-mono)", fontSize: 11,
+    color: "var(--text-secondary)", wordBreak: "break-word",
+  },
+  retryBtn: {
+    padding: "8px 16px", background: "none",
+    border: "1px solid var(--error)", borderRadius: 6,
+    color: "var(--error)", cursor: "pointer",
+    fontFamily: "var(--font-mono)", fontSize: 12, alignSelf: "flex-start",
+    minHeight: 36,
+  },
+
+  /* Welcome */
+  welcome: {
+    display: "flex", flexDirection: "column", alignItems: "center",
+    justifyContent: "center", minHeight: "60vh", textAlign: "center",
+    position: "relative", gap: 16, padding: "24px 0",
+  },
+  welcomeGlow: {
+    position: "absolute", width: "min(400px, 80vw)", height: "min(400px, 80vw)",
+    borderRadius: "50%",
+    background: "radial-gradient(circle, rgba(124,92,252,0.10) 0%, transparent 70%)",
+    pointerEvents: "none",
+  },
+  welcomeIcon: { fontSize: "clamp(36px, 10vw, 56px)", color: "var(--accent)", opacity: 0.8 },
+  welcomeTitle: {
+    fontFamily: "var(--font-display)",
+    fontSize: "clamp(24px, 7vw, 36px)",
+    fontWeight: 800, lineHeight: 1.2, color: "var(--text-primary)",
+    letterSpacing: "-0.02em",
+  },
+  welcomeDesc: {
+    fontFamily: "var(--font-mono)", fontSize: "clamp(12px, 3vw, 13px)",
+    color: "var(--text-secondary)", maxWidth: 400, lineHeight: 1.7,
+    padding: "0 8px",
+  },
+  featureList: {
+    listStyle: "none", display: "flex", flexDirection: "column",
+    gap: 6, alignItems: "flex-start",
+  },
+  featureItem: {
+    display: "flex", alignItems: "center", gap: 8,
+    fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-muted)",
+  },
+  featureDot: { color: "var(--accent)", fontSize: 18, lineHeight: 1 },
+
+  /* Processing */
+  processingState: {
+    display: "flex", flexDirection: "column", alignItems: "center",
+    justifyContent: "center", minHeight: "50vh", gap: 20, padding: "20px 0",
+  },
+  processingAnim: {
+    display: "flex", alignItems: "flex-end", gap: 5,
+    height: "clamp(60px, 12vw, 90px)",
+  },
+  processingBar: {
+    width: "clamp(8px, 2vw, 12px)", borderRadius: 4,
+    animation: "pulse 1.2s ease-in-out infinite alternate",
+  },
+  processingLabel: {
+    fontFamily: "var(--font-mono)", fontSize: 13, color: "var(--text-secondary)",
+    animation: "pulse 2s ease-in-out infinite",
+  },
+  processingStage: {
+    fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-muted)",
+  },
+
+  /* Results */
+  results: { display: "flex", flexDirection: "column", gap: 16 },
 };

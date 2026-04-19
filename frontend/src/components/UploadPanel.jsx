@@ -1,22 +1,23 @@
 import { useState, useRef, useCallback } from "react";
 
 const ACCEPTED = ".mp4,.mov,.mkv,.avi,.webm";
+const VALID_EXTS = new Set(["mp4","mov","mkv","avi","webm"]);
 
 export default function UploadPanel({ onSubmit, loading }) {
-  const [file, setFile] = useState(null);
+  const [file, setFile]       = useState(null);
   const [dragging, setDragging] = useState(false);
   const [settings, setSettings] = useState({
-    sample_every_n: 10,
-    n_colors: 8,
-    scene_threshold: 0.35,
+    sample_every_n:   10,
+    n_colors:         8,
+    scene_threshold:  0.35,
   });
   const inputRef = useRef();
 
   const handleFile = useCallback((f) => {
     if (!f) return;
     const ext = f.name.split(".").pop().toLowerCase();
-    if (!["mp4","mov","mkv","avi","webm"].includes(ext)) {
-      alert("Unsupported format. Use MP4, MOV, MKV, AVI, or WebM.");
+    if (!VALID_EXTS.has(ext)) {
+      alert(`Unsupported format ".${ext}". Please use: MP4, MOV, MKV, AVI, or WebM.`);
       return;
     }
     setFile(f);
@@ -29,186 +30,252 @@ export default function UploadPanel({ onSubmit, loading }) {
   }, [handleFile]);
 
   const onSubmitClick = () => {
-    if (!file) return;
+    if (!file || loading) return;
     const fd = new FormData();
     fd.append("file", file);
-    fd.append("sample_every_n", settings.sample_every_n);
-    fd.append("n_colors", settings.n_colors);
-    fd.append("scene_threshold", settings.scene_threshold);
+    fd.append("sample_every_n",   settings.sample_every_n);
+    fd.append("n_colors",         settings.n_colors);
+    fd.append("scene_threshold",  settings.scene_threshold);
     onSubmit(fd, file.name);
   };
 
+  const isReady = file && !loading;
+
   return (
-    <div style={styles.wrapper}>
-      {/* Drop zone */}
+    <div style={S.wrapper}>
+
+      {/* Drop zone / file picker */}
       <div
         style={{
-          ...styles.dropzone,
-          borderColor: dragging ? "var(--accent)" : file ? "var(--success)" : "var(--border-active)",
-          background: dragging ? "var(--accent-soft)" : file ? "rgba(92,252,140,0.05)" : "var(--bg-elevated)",
+          ...S.dropzone,
+          borderColor: dragging
+            ? "var(--accent)"
+            : file
+              ? "var(--success)"
+              : "var(--border-active)",
+          background: dragging
+            ? "var(--accent-soft)"
+            : file
+              ? "rgba(92,252,140,0.05)"
+              : "var(--bg-elevated)",
         }}
         onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
         onDragLeave={() => setDragging(false)}
         onDrop={onDrop}
         onClick={() => !file && inputRef.current?.click()}
+        role="button"
+        aria-label={file ? `Selected: ${file.name}` : "Click or drag to select a video file"}
+        tabIndex={file ? -1 : 0}
+        onKeyDown={(e) => e.key === "Enter" && !file && inputRef.current?.click()}
       >
-        <input ref={inputRef} type="file" accept={ACCEPTED} style={{ display: "none" }}
-          onChange={(e) => handleFile(e.target.files[0])} />
+        <input
+          ref={inputRef}
+          type="file"
+          accept={ACCEPTED}
+          style={{ display: "none" }}
+          onChange={(e) => handleFile(e.target.files[0])}
+          aria-hidden
+        />
 
         {file ? (
-          <div style={styles.fileInfo}>
-            <div style={styles.fileIcon}>🎬</div>
-            <div>
-              <div style={styles.fileName}>{file.name}</div>
-              <div style={styles.fileMeta}>{(file.size / 1024 / 1024).toFixed(1)} MB</div>
+          /* File selected state */
+          <div style={S.fileInfo}>
+            <span style={S.fileIcon} aria-hidden>🎬</span>
+            <div style={S.fileMeta}>
+              <div style={S.fileName} className="truncate">{file.name}</div>
+              <div style={S.fileSize}>{(file.size / 1024 / 1024).toFixed(1)} MB</div>
             </div>
-            <button style={styles.clearBtn} onClick={(e) => { e.stopPropagation(); setFile(null); }}>✕</button>
+            <button
+              style={S.clearBtn}
+              onClick={(e) => { e.stopPropagation(); setFile(null); }}
+              aria-label="Remove selected file"
+            >
+              ✕
+            </button>
           </div>
         ) : (
-          <div style={styles.dropContent}>
-            <div style={styles.dropIcon}>⬆</div>
-            <div style={styles.dropTitle}>Drop video here</div>
-            <div style={styles.dropSub}>MP4 · MOV · MKV · AVI · WebM — max 500MB</div>
-            <button style={styles.browseBtn}>Browse files</button>
+          /* Empty state */
+          <div style={S.dropContent}>
+            <div style={S.dropIcon} aria-hidden>⬆</div>
+            <div style={S.dropTitle}>
+              {window.matchMedia("(hover: none)").matches
+                ? "Tap to select video"
+                : "Drop video here"}
+            </div>
+            <div style={S.dropSub}>MP4 · MOV · MKV · AVI · WebM</div>
+            <div style={S.dropSub}>Max 500 MB</div>
+            <button
+              style={S.browseBtn}
+              onClick={(e) => { e.stopPropagation(); inputRef.current?.click(); }}
+            >
+              Browse files
+            </button>
           </div>
         )}
       </div>
 
-      {/* Settings */}
-      <div style={styles.settings}>
-        <div style={styles.settingsTitle}>Analysis Settings</div>
-        <div style={styles.settingsGrid}>
+      {/* Settings accordion */}
+      <details style={S.details}>
+        <summary style={S.summary}>
+          <span className="section-eyebrow">Analysis Settings</span>
+          <span style={S.summaryChevron}>▾</span>
+        </summary>
+
+        <div style={S.settingsBody}>
           <SettingRow
             label="Sample every N frames"
-            hint="1 = all frames, higher = faster"
+            hint="Higher = faster, less detail"
             value={settings.sample_every_n}
             min={1} max={60}
             onChange={(v) => setSettings(s => ({ ...s, sample_every_n: v }))}
           />
           <SettingRow
-            label="Dominant colors per frame"
+            label="Colors per frame"
             hint="K-Means clusters (3–12)"
             value={settings.n_colors}
             min={3} max={12}
             onChange={(v) => setSettings(s => ({ ...s, n_colors: v }))}
           />
           <SettingRow
-            label="Scene cut threshold"
-            hint="Lower = more sensitive (0.1–0.9)"
+            label="Scene threshold"
+            hint="Lower = more sensitive"
             value={settings.scene_threshold}
             min={0.1} max={0.9} step={0.05}
             onChange={(v) => setSettings(s => ({ ...s, scene_threshold: parseFloat(v) }))}
           />
         </div>
-      </div>
+      </details>
 
+      {/* Submit button */}
       <button
         style={{
-          ...styles.analyzeBtn,
-          opacity: (!file || loading) ? 0.4 : 1,
-          cursor: (!file || loading) ? "not-allowed" : "pointer",
+          ...S.analyzeBtn,
+          opacity: isReady ? 1 : 0.45,
+          cursor:  isReady ? "pointer" : "not-allowed",
         }}
-        disabled={!file || loading}
+        disabled={!isReady}
         onClick={onSubmitClick}
+        aria-label={loading ? "Analysis in progress" : "Start video analysis"}
       >
-        {loading ? (
-          <span>⟳ Processing…</span>
-        ) : (
-          <span>Analyze Video →</span>
-        )}
+        {loading ? "⟳ Processing…" : "Analyze Video →"}
       </button>
     </div>
   );
 }
 
 function SettingRow({ label, hint, value, min, max, step = 1, onChange }) {
+  const id = `setting-${label.replace(/\s+/g, "-").toLowerCase()}`;
   return (
-    <div style={styles.settingRow}>
-      <div>
-        <div style={styles.settingLabel}>{label}</div>
-        <div style={styles.settingHint}>{hint}</div>
+    <div style={S.settingRow}>
+      <div style={S.settingLabelWrap}>
+        <label htmlFor={id} style={S.settingLabel}>{label}</label>
+        <div style={S.settingHint}>{hint}</div>
       </div>
-      <div style={styles.settingControl}>
+      <div style={S.settingControl}>
         <input
-          type="range" min={min} max={max} step={step} value={value}
-          style={styles.slider}
-          onChange={(e) => onChange(step === 1 ? parseInt(e.target.value) : parseFloat(e.target.value))}
+          id={id}
+          type="range"
+          min={min} max={max} step={step}
+          value={value}
+          style={S.slider}
+          onChange={(e) =>
+            onChange(step === 1 ? parseInt(e.target.value) : parseFloat(e.target.value))
+          }
+          aria-label={`${label}: ${value}`}
         />
-        <span style={styles.settingValue}>{value}</span>
+        <span style={S.settingValue} aria-live="polite">{value}</span>
       </div>
     </div>
   );
 }
 
-const styles = {
-  wrapper: { display: "flex", flexDirection: "column", gap: 20 },
+const S = {
+  wrapper: { display: "flex", flexDirection: "column", gap: 14 },
+
+  /* Drop zone */
   dropzone: {
     border: "2px dashed",
     borderRadius: "var(--radius-lg)",
-    padding: 32,
+    padding: "20px 16px",
     cursor: "pointer",
-    transition: "all 0.2s",
-    minHeight: 180,
+    transition: "border-color 0.2s, background 0.2s",
+    minHeight: 140,
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
   },
-  dropContent: { textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 10 },
-  dropIcon: { fontSize: 36, opacity: 0.5 },
-  dropTitle: { fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 700, color: "var(--text-primary)" },
-  dropSub: { color: "var(--text-muted)", fontSize: 11 },
+  dropContent: {
+    textAlign: "center", display: "flex",
+    flexDirection: "column", alignItems: "center", gap: 8,
+  },
+  dropIcon:  { fontSize: 28, opacity: 0.5, lineHeight: 1 },
+  dropTitle: {
+    fontFamily: "var(--font-display)", fontSize: 16,
+    fontWeight: 700, color: "var(--text-primary)",
+  },
+  dropSub:   { color: "var(--text-muted)", fontSize: 11 },
   browseBtn: {
-    marginTop: 6,
-    padding: "6px 18px",
-    background: "var(--accent-soft)",
-    border: "1px solid var(--accent)",
-    borderRadius: 6,
-    color: "var(--accent)",
-    cursor: "pointer",
-    fontFamily: "var(--font-mono)",
-    fontSize: 12,
+    marginTop: 4, padding: "7px 18px",
+    background: "var(--accent-soft)", border: "1px solid var(--accent)",
+    borderRadius: 6, color: "var(--accent)", cursor: "pointer",
+    fontFamily: "var(--font-mono)", fontSize: 12, minHeight: 36,
   },
+
+  /* File selected */
   fileInfo: {
-    display: "flex", alignItems: "center", gap: 14, width: "100%",
+    display: "flex", alignItems: "center",
+    gap: 12, width: "100%", minWidth: 0,
   },
-  fileIcon: { fontSize: 32 },
-  fileName: { fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 15, color: "var(--text-primary)" },
-  fileMeta: { color: "var(--text-muted)", fontSize: 11, marginTop: 2 },
-  clearBtn: {
-    marginLeft: "auto", background: "none", border: "none",
-    color: "var(--text-muted)", cursor: "pointer", fontSize: 16, padding: "4px 8px",
+  fileIcon: { fontSize: 28, flexShrink: 0 },
+  fileMeta: { flex: 1, minWidth: 0 },
+  fileName: {
+    fontFamily: "var(--font-display)", fontWeight: 600,
+    fontSize: 14, color: "var(--text-primary)",
   },
-  settings: {
-    background: "var(--bg-elevated)",
-    border: "1px solid var(--border)",
-    borderRadius: "var(--radius)",
-    padding: 16,
+  fileSize:  { color: "var(--text-muted)", fontSize: 11, marginTop: 2 },
+  clearBtn:  {
+    marginLeft: "auto", flexShrink: 0,
+    background: "none", border: "none",
+    color: "var(--text-muted)", cursor: "pointer",
+    fontSize: 18, padding: "8px",
+    minWidth: 40, minHeight: 40,
+    display: "flex", alignItems: "center", justifyContent: "center",
+    borderRadius: 6,
   },
-  settingsTitle: {
-    fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 11,
-    color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 14,
+
+  /* Settings */
+  details: {
+    background: "var(--bg-elevated)", border: "1px solid var(--border)",
+    borderRadius: "var(--radius)", overflow: "hidden",
   },
-  settingsGrid: { display: "flex", flexDirection: "column", gap: 12 },
-  settingRow: {
-    display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16,
+  summary: {
+    display: "flex", alignItems: "center", justifyContent: "space-between",
+    padding: "12px 14px", cursor: "pointer", listStyle: "none",
+    userSelect: "none", minHeight: 44,
   },
-  settingLabel: { color: "var(--text-secondary)", fontSize: 12 },
-  settingHint: { color: "var(--text-muted)", fontSize: 10, marginTop: 1 },
-  settingControl: { display: "flex", alignItems: "center", gap: 10, flexShrink: 0 },
-  slider: { width: 100, accentColor: "var(--accent)", cursor: "pointer" },
-  settingValue: { color: "var(--accent)", fontWeight: 500, width: 36, textAlign: "right", fontSize: 12 },
+  summaryChevron: { color: "var(--text-muted)", fontSize: 12 },
+  settingsBody:   { padding: "4px 14px 14px", display: "flex", flexDirection: "column", gap: 14 },
+  settingRow:     {
+    display: "flex", flexDirection: "column", gap: 6,
+  },
+  settingLabelWrap: {},
+  settingLabel:   { color: "var(--text-secondary)", fontSize: 12, cursor: "pointer" },
+  settingHint:    { color: "var(--text-muted)", fontSize: 10, marginTop: 2 },
+  settingControl: { display: "flex", alignItems: "center", gap: 10 },
+  slider:         { flex: 1, accentColor: "var(--accent)", cursor: "pointer" },
+  settingValue:   {
+    color: "var(--accent)", fontWeight: 500,
+    width: 34, textAlign: "right", fontSize: 12, flexShrink: 0,
+  },
+
+  /* Submit */
   analyzeBtn: {
-    width: "100%",
-    padding: "14px 24px",
-    background: "var(--accent)",
-    border: "none",
-    borderRadius: "var(--radius)",
-    color: "#fff",
-    fontFamily: "var(--font-display)",
-    fontSize: 15,
-    fontWeight: 700,
-    cursor: "pointer",
-    transition: "all 0.2s",
-    letterSpacing: "0.03em",
+    width: "100%", padding: "13px 24px",
+    background: "var(--accent)", border: "none",
+    borderRadius: "var(--radius)", color: "#fff",
+    fontFamily: "var(--font-display)", fontSize: 15,
+    fontWeight: 700, cursor: "pointer",
+    transition: "opacity 0.2s", letterSpacing: "0.03em",
+    minHeight: 48,
   },
 };

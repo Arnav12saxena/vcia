@@ -3,14 +3,13 @@ import { MoodBadge } from "./Palette";
 export default function StatsSummary({ metadata, frames, scenes }) {
   if (!metadata) return null;
 
-  // Overall mood distribution
   const moodCounts = {};
   frames?.forEach((f) => {
     moodCounts[f.mood] = (moodCounts[f.mood] || 0) + 1;
   });
-  const dominantMood = Object.entries(moodCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || "neutral";
+  const dominantMood = Object.entries(moodCounts)
+    .sort((a, b) => b[1] - a[1])[0]?.[0] || "neutral";
 
-  // Global palette: merge top colors from all scenes
   const colorFreq = {};
   scenes?.forEach((s) => {
     s.palette?.forEach((c) => {
@@ -23,34 +22,40 @@ export default function StatsSummary({ metadata, frames, scenes }) {
     .map(([hex]) => hex);
 
   return (
-    <div style={styles.wrapper}>
-      {/* Stats row */}
-      <div style={styles.statsRow}>
-        <Stat label="Duration" value={metadata.duration_formatted} />
-        <Stat label="Resolution" value={`${metadata.width}×${metadata.height}`} />
-        <Stat label="FPS" value={metadata.fps} />
-        <Stat label="Frames analyzed" value={frames?.length || 0} />
-        <Stat label="Scenes" value={scenes?.length || 0} />
-        <Stat label="Dominant mood" value={<MoodBadge mood={dominantMood} />} />
+    <div style={S.wrapper}>
+      {/* Stats grid — auto-fills, wraps on mobile */}
+      <div style={S.grid}>
+        <Stat label="Duration"     value={metadata.duration_formatted} />
+        <Stat label="Resolution"   value={`${metadata.width}×${metadata.height}`} />
+        <Stat label="FPS"          value={metadata.fps} />
+        <Stat label="Frames"       value={frames?.length || 0} />
+        <Stat label="Scenes"       value={scenes?.length || 0} />
+        <Stat label="Mood"         value={<MoodBadge mood={dominantMood} />} />
       </div>
 
-      {/* Global palette strip */}
+      {/* Global palette */}
       {globalPalette.length > 0 && (
-        <div style={styles.paletteSection}>
-          <div style={styles.palLabel}>Global Color Palette</div>
-          <div style={styles.paletteStrip}>
+        <div style={S.paletteSection}>
+          <div style={S.palLabel} className="section-eyebrow">Global Palette</div>
+
+          {/* Color strip */}
+          <div style={S.strip}>
             {globalPalette.map((hex, i) => (
               <div
                 key={i}
-                style={{ flex: 1, background: hex, minWidth: 0 }}
+                style={{ flex: 1, background: hex }}
                 title={hex}
               />
             ))}
           </div>
-          <div style={styles.hexList}>
-            {globalPalette.map((hex, i) => (
-              <span key={i} style={styles.hexTag}>{hex}</span>
-            ))}
+
+          {/* Hex tags — horizontal scroll on mobile */}
+          <div style={S.hexScroll}>
+            <div style={S.hexList}>
+              {globalPalette.map((hex, i) => (
+                <HexTag key={i} hex={hex} />
+              ))}
+            </div>
           </div>
         </div>
       )}
@@ -60,73 +65,103 @@ export default function StatsSummary({ metadata, frames, scenes }) {
 
 function Stat({ label, value }) {
   return (
-    <div style={styles.stat}>
-      <div style={styles.statLabel}>{label}</div>
-      <div style={styles.statValue}>{value}</div>
+    <div style={S.stat}>
+      <div style={S.statLabel} className="section-eyebrow">{label}</div>
+      <div style={S.statValue}>{value}</div>
     </div>
   );
 }
 
-const styles = {
+function HexTag({ hex }) {
+  const copy = () => navigator.clipboard?.writeText(hex);
+  return (
+    <button
+      style={S.hexTag}
+      onClick={copy}
+      title={`Copy ${hex}`}
+      aria-label={`Copy color ${hex}`}
+    >
+      <span
+        style={{ width: 8, height: 8, borderRadius: 2, background: hex, flexShrink: 0 }}
+      />
+      {hex}
+    </button>
+  );
+}
+
+const S = {
   wrapper: {
     background: "var(--bg-card)",
     border: "1px solid var(--border)",
     borderRadius: "var(--radius-lg)",
-    padding: "16px 20px",
+    padding: "14px 16px",
     display: "flex",
     flexDirection: "column",
-    gap: 16,
+    gap: 14,
   },
-  statsRow: {
+
+  /* Auto-fill grid: 3 columns on mobile, more on wider screens */
+  grid: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))",
-    gap: 12,
+    gridTemplateColumns: "repeat(3, 1fr)",
+    gap: "10px 12px",
   },
-  stat: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 3,
-  },
+
+  stat: { display: "flex", flexDirection: "column", gap: 3 },
   statLabel: {
-    fontFamily: "var(--font-display)",
-    fontSize: 9,
-    color: "var(--text-muted)",
-    textTransform: "uppercase",
-    letterSpacing: "0.1em",
+    fontSize: 9, letterSpacing: "0.08em",
+    color: "var(--text-muted)", textTransform: "uppercase",
   },
   statValue: {
     fontFamily: "var(--font-mono)",
-    fontSize: 13,
+    fontSize: "clamp(11px, 2.5vw, 13px)",
     fontWeight: 600,
     color: "var(--text-primary)",
+    wordBreak: "break-word",
   },
+
   paletteSection: { display: "flex", flexDirection: "column", gap: 8 },
-  palLabel: {
-    fontFamily: "var(--font-display)",
-    fontSize: 10,
-    color: "var(--text-muted)",
-    textTransform: "uppercase",
-    letterSpacing: "0.1em",
-  },
-  paletteStrip: {
+  palLabel: { marginBottom: 2 },
+  strip: {
     display: "flex",
-    height: 32,
+    height: 28,
     borderRadius: 8,
     overflow: "hidden",
     border: "1px solid var(--border)",
   },
+
+  /* Horizontal scroll container for hex tags on mobile */
+  hexScroll: {
+    overflowX: "auto",
+    overflowY: "hidden",
+    scrollbarWidth: "none",
+    msOverflowStyle: "none",
+    WebkitOverflowScrolling: "touch",
+    marginLeft: -2,
+    marginRight: -2,
+    paddingLeft: 2,
+    paddingRight: 2,
+  },
   hexList: {
     display: "flex",
-    gap: 6,
-    flexWrap: "wrap",
+    gap: 5,
+    paddingBottom: 2,
+    width: "max-content",
   },
   hexTag: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 5,
     fontFamily: "var(--font-mono)",
     fontSize: 10,
     color: "var(--text-secondary)",
     background: "var(--bg-elevated)",
-    padding: "2px 6px",
+    padding: "4px 8px",
     borderRadius: 4,
     border: "1px solid var(--border)",
+    cursor: "pointer",
+    whiteSpace: "nowrap",
+    minHeight: 28,
+    transition: "border-color 0.15s",
   },
 };
