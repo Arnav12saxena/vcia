@@ -1,232 +1,215 @@
-🐄 Indian Cattle Breed Identification using YOLOv8x + EfficientNetV2-S
-🧬 A Two-Stage Computer Vision Pipeline for Fine-Grained Breed Classification
-This project presents a two-stage deep learning pipeline for automatic identification of Indian indigenous cattle breeds from real-world farm images.
-It integrates:
+# 🎬 VCIA — Video Content Intelligence & Analysis Platform
 
-YOLOv8x (COCO-pretrained) for cattle region extraction
-EfficientNetV2-S for fine-grained breed classification
-Despite severe dataset issues and minimal high-quality crops, the classifier achieves:
+## 🧠 AI-Powered Video Scene Analysis, Segmentation & Export Workflow
 
-Top-1 Accuracy: ~78%
-Top-5 Accuracy: ~98%
-Macro F1-Score: ~0.78
-📌 Introduction
-Breed identification plays a critical role in:
+VCIA is a full-stack AI-powered video analysis platform built for automated scene detection, frame-level analysis, and intelligent export workflows.
 
-Livestock productivity
-Feeding and breeding optimization
-Genetic conservation
-Health monitoring
-However, India’s bovine datasets suffer from:
+It allows users to upload videos, detect scene transitions, analyze video structure, and export meaningful segments for content understanding, editing workflows, and research applications.
 
-Mixed cattle and buffalo species
-Non-standardized backgrounds
-High intra-class variation
-Very similar-looking breeds
-Partial-body images
-Class imbalance
-This project addresses these issues through a two-stage workflow:
+This project integrates:
 
-🐮 YOLOv8x (COCO pretrained)
-Used only as a detector to crop cattle from raw images.
+- FastAPI (Backend API + Processing Engine)
+- OpenCV (Frame Analysis + Scene Detection)
+- FFmpeg-based video handling
+- Vite (Frontend UI)
+- Render (Backend Deployment)
+- Vercel (Frontend Deployment)
 
-🌾 EfficientNetV2-S
-Fine-tuned for multi-class Indian cattle breed classification.
+The system is fully deployed and publicly accessible.
 
-This is one of the few experimental works focusing on Indian indigenous breeds.
+---
 
-🎯 Experimental Objective
-The goal was to build a robust end-to-end pipeline that can:
+# 📌 Introduction
 
-Detect cattle in real-world images
-Generate consistent YOLO-based crops
-Classify breeds using EfficientNetV2-S
-Handle non-ideal conditions
-Test feasibility of field deployment
-⚠️ Not Attempted: Body Condition Score (BCS)
-BCS requires side-view images, pose estimation, and labeled BCS datasets.
-These were not available.
+Video content analysis is important for:
 
-🗂 Dataset Description
-📥 Source
-Kaggle: Indian Bovine Breeds Dataset
-Contains both cattle and buffalo images.
+- Content summarization
+- Automated editing workflows
+- Scene segmentation
+- Educational content indexing
+- Media intelligence systems
 
-⚠️ Raw Dataset Problems
-Mixed buffalo and cow species
-Class imbalance
-Partial-body visibility
-Real-world farm backgrounds
-High inter-breed similarity
-Inconsistent viewpoints
-🧹 Final Dataset After Cleaning
-Buffalo classes removed
-16 cattle breeds retained
-YOLO crops generated using yolov8x.pt
-Crops manually verified
-📊 Final Image Split
-Split	Count
-Train	2176
-Validation	625
-Test	318
-Stored in: final_class_distribution.csv
+Manual video segmentation is slow, repetitive, and difficult to scale.
 
-🔧 Methodology
-🐮 Stage 1 — YOLOv8x Detection
-YOLOv8x COCO was used without retraining:
+VCIA solves this by providing an automated AI-powered workflow for video scene analysis.
 
-from ultralytics import YOLO
-detector = YOLO("yolov8x.pt")
-🔍 Key Observations
-COCO has only one generic cow class
-Indian breeds vary drastically
-~0.5% successful detections on raw dataset
-Frequent detection failures:
-Head-only detections
-Missed animals
-False positives
-Even so, enough clean crops were gathered.
+---
 
-🖼 Figure 1: Example YOLO Crops
-(from cow_crops/)
+# 🎯 Project Objective
 
-Example YOLO Crops
+The goal was to build a complete end-to-end platform that can:
 
-🖼 Figure 2: Detection Success vs Failure
-(from figure2_fallback.png)
+- Upload videos through a web interface
+- Read metadata automatically
+- Detect scene transitions intelligently
+- Analyze frames using OpenCV
+- Track progress in real time
+- Export useful video segments
 
-Detection Success vs Failure
+The focus was not just model development, but full deployment as a usable product.
 
-🌾 Stage 2 — EfficientNetV2-S Classification
-⚙️ Training Configuration
-Input: 256×256
-Optimizer: Adam
-Loss: SparseCategoricalCrossentropy
-Batch size: 16–32
-🚀 Two-Phase Training
-🔵 Phase 1 — Feature Adaptation (12 epochs)
-Higher LR
-Adapt pretrained backbone
-🟢 Phase 2 — Fine-Tuning (15 epochs)
-Lower LR
-Reduced overfitting
-Stable convergence
-Final model saved as:
-efficientnet_v2s_final.keras
+---
 
-📈 Results & Evaluation
-🏆 Overall Performance
-Metric	Score
-Top-1 Accuracy	~78%
-Top-5 Accuracy	98.1%
-Macro F1-Score	~0.78
-Test Accuracy	0.75786
-📌 Interpretation
-Strong generalization
-Reliable under noisy backgrounds
-Captures fine visual differences
-📉 Training Curves
-Found in /results/:
+# 🔧 Core Features
 
-EfficientNet Training Accuracy
-EfficientNet Training Loss
-Training Accuracy Training Loss
+## 🎥 Video Upload System
 
-🔢 Confusion Matrix
-Includes:
+Users can upload video files directly from the frontend for automatic analysis.
 
-Confusion Matrix
-Normalized Confusion Matrix
-Confusion Matrix Normalized Confusion Matrix
+Supports real-world video files including MP4 and common formats.
 
-⚠️ Major Confusions
-Hallikar ↔ Bargur
-Ongole ↔ Deoni
-Jersey ↔ Brown Swiss
-Reasons: visual similarity, partial crops, imbalance.
+---
 
-🐄 Per-Class Performance
-Strongest:
+## 🧠 Scene Detection Engine
 
-🟢 Banni — 100%
-🟢 Holstein — 100%
-Toda — 85%
-Brown Swiss — 83%
-Sahiwal — 81%
-Weakest:
+The backend performs:
 
-🔴 Ongole — 58%
-🔴 Jersey — 62%
-🟠 Bargur — 66%
-🧪 Qualitative Prediction Grid
-Image: Prediction_Grid (4x6).png
-Displays correct, incorrect, and borderline samples.
+- Frame extraction
+- Scene transition detection
+- Frame difference analysis
+- Content segmentation
 
-Prediction Grid
+using OpenCV-powered processing.
 
-💡 System Effectiveness
-High accuracy despite dataset noise
-Robust cattle detection + fine-grained classification
-Works well in cluttered farm backgrounds
-Practical foundation for livestock monitoring systems
-⚠️ Limitations
-🟥 Detection
-YOLO COCO cannot detect Indian cattle reliably
-Very low detection success
-Head-only crops & missed detections
-🟨 Classification
-Several breeds visually identical
-Partial visibility reduces accuracy
-Class imbalance impacts learning
-🐄 BCS (Body Condition Score)
-No side-view images
-No labeled BCS dataset
-Requires pose estimation
+---
+
+## 📊 Real-Time Progress Tracking
+
+Users can monitor:
+
+- Metadata reading
+- Analysis progress
+- Frame processing
+- Export workflow
+
+Example:
+
+```text
+Analyzing
+HOW TO MAKE TRIANGLE FLEXAGON.mp4
+43%
+Analyzing frames (612/1410)
+```
+
+☁️ Deployment
+Backend → Render
+Live Backend URL
+
+https://vcia-backend.onrender.com
+
+Configured with:
+
+Python 3.11
+FastAPI
+Gunicorn
+OpenCV
+Frontend → Vercel
+
+Frontend deployed on Vercel and connected using:
+
+VITE_API_URL=https://vcia-backend.onrender.com
+
+This enables frontend → backend communication.
+
+🧪 Deployment Validation
+
+The complete workflow was successfully tested:
+
+Backend deployment successful
+Frontend deployment successful
+Public cloud access working
+Video upload successful
+Metadata reading successful
+Frame analysis successful
+Scene detection completed successfully
+
+This confirms full end-to-end production readiness.
+
+⚙️ Tech Stack
+Category	Technology
+Backend	FastAPI
+Video Processing	OpenCV
+Server	Gunicorn + Uvicorn
+Frontend	Vite
+Deployment	Render
+Hosting	Vercel
+Environment	Python 3.11
+Version Control	Git + GitHub
+🖼 Screenshots
+🖼 Main Upload Interface
+
+(Add Screenshot Here)
+
+🖼 Analysis Progress Dashboard
+
+(Add Screenshot Here)
+
+⚠️ Challenges Faced
+
+Major deployment issues included:
+
+Missing requirements.txt
+Wrong repo structure
+Root directory issues
+Pillow build failures
+Python 3.14 incompatibility
+
+Resolved by:
+
+Proper GitHub repo restructuring
+Root directory correction
+Python version pinning (3.11)
+Render deployment optimization
 🚀 Future Scope
-Train YOLO on Indian cattle
-Add pose estimation (HRNet, MediaPipe)
-Use segmentation for precise masks
-Extend to BCS prediction
-Upgrade model to Swin-ViT / CoAtNet
-Add TTA, SAM, or metric learning
-Build an on-field mobile/edge deployment
+
+Possible future upgrades:
+
+AI-powered semantic scene understanding
+Transcript generation
+Subtitle-aware segmentation
+Highlight detection
+Educational video indexing
+Multi-user production scaling
+Docker + VPS production deployment
 🏁 Conclusion
-A two-stage system was developed using:
 
-YOLOv8x for cattle detection
-EfficientNetV2-S for breed classification
-Despite data limitations, it achieved:
+VCIA successfully delivers a fully deployed AI-powered video analysis system using:
 
-~78% Top-1 Accuracy
-98% Top-5 Accuracy
-~0.78 Macro F1 Score
-A strong baseline for:
+FastAPI for backend services
+OpenCV for scene analysis
+Vite for frontend interaction
+Render + Vercel for cloud deployment
 
-Automated livestock identification
-Precision agriculture
-Smart dairy & cattle monitoring
+Unlike academic-only projects, this system was deployed, tested, and validated in real production conditions.
+
+This is not just a model.
+
+It is a working product.
+
 📁 Project Structure
-cattle-detection-classification/
-│── Final_cattle_model.ipynb
-│── class_distribution_final_16.py
-│── final_class_distribution.py
-│── Global_Classification_Metrics.csv
-│── classification_report.txt
-│── per_class_accuracy.csv
-│── final_class_distribution.csv
-│── Cow_Experimentation_Arnav Saxena.docx
+vcia/
 │
-├── results/
-│   ├── Confusion Matrix.png
-│   ├── Normalized Confusion Matrix.png
-│   ├── EfficientNet Training Accuracy (Reconstructed).png
-│   ├── EfficientNet Training Loss (Reconstructed).png
-│   ├── Prediction_Grid (4x6).png
-│   ├── figure1_cropped.png
-│   └── figure2_fallback.png
+├── backend/
+│   ├── main.py
+│   ├── requirements.txt
+│   ├── .python-version
+│   └── render.yaml
 │
-└── README.md
+├── frontend/
+│   ├── src/
+│   ├── package.json
+│   └── vite.config.js
+│
+├── docs/
+├── electron/
+├── README.md
+└── .gitignore
 📬 Contact
 Arnav Saxena
-🔗 LinkedIn: https://www.linkedin.com/in/arnav-saxena-a9a217367
-📧 Email: arnav12saxena@gmail.com
+🔗 LinkedIn
+
+https://www.linkedin.com/in/arnav-saxena-a9a217367
+
+📧 Email
+
+arnav12saxena@gmail.com
