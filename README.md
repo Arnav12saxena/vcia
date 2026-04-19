@@ -135,9 +135,7 @@ vcia/
 │
 ├── docs/
 ├── electron/
-├── README.md
-└── .gitignore<img width="1920" height="1080" alt="vcia (1)" src="https://github.com/user-attachments/assets/40368cad-8eba-4ea6-b429-f8447459e9a0" />
-
+└── README.md
 
 ---
 
