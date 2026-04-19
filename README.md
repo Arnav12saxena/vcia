@@ -124,10 +124,6 @@ The complete workflow was successfully tested end-to-end:
 ```text
 vcia/
 │
-├── .github/
-│   └── workflows/
-│       └── deploy.yml
-│
 ├── backend/
 │   ├── main.py
 │   ├── scene_detector.py
@@ -139,7 +135,7 @@ vcia/
 │   ├── runtime.txt
 │   ├── .python-version
 │   ├── Dockerfile
-│   └── railway.toml
+│   └── vcia_server.spec
 │
 ├── frontend/
 │   ├── public/
@@ -169,7 +165,6 @@ vcia/
 │   ├── package.json
 │   ├── vite.config.js
 │   ├── vercel.json
-│   ├── netlify.toml
 │   ├── .env.development
 │   └── .env.production.example
 │
