@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+
+# Node
+node_modules/
+frontend/dist/
+dist-electron/
+*.log
+
+# Env files (never commit real env files)
+.env
+.env.local
+.env.production
+*.env
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/settings.json
+.idea/
+
+# Electron
+electron/backend/vcia_server/
+
+# Uploads
+/tmp/vcia_uploads/
+*.mp4
+*.mov
+*.mkv
+
+# PyInstaller
+backend/dist/
+backend/build/
+backend/*.spec.bak

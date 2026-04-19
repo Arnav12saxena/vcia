@@ -1,0 +1,34 @@
+# render.yaml — Render.com deployment configuration
+# Deploy: Connect GitHub repo → "New Web Service" → select this file
+
+services:
+  - type: web
+    name: vcia-api
+    runtime: python
+    region: oregon
+    plan: starter          # Free tier — upgrade to Standard for production
+
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn main:app -w 2 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT --timeout 120 --keep-alive 5 --log-level info
+
+    healthCheckPath: /api/health
+
+    envVars:
+      # ── Required: set in Render dashboard ──
+      - key: ALLOWED_ORIGINS
+        sync: false          # Set manually: https://your-app.vercel.app
+
+      # ── Optional overrides ──
+      - key: MAX_FILE_MB
+        value: "200"         # Keep low on free tier (limited RAM)
+      - key: JOB_TTL_HOURS
+        value: "1"
+      - key: UPLOAD_DIR
+        value: "/tmp/vcia_uploads"
+      - key: PORT
+        value: "10000"
+
+    disk:
+      name: vcia-uploads
+      mountPath: /tmp/vcia_uploads
+      sizeGB: 1              # Ephemeral scratch storage

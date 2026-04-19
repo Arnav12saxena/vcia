@@ -1,0 +1,214 @@
+# .github/workflows/deploy.yml
+# ─────────────────────────────────────────────────────────────────
+# CI/CD Pipeline for Video Color Intelligence Analyzer
+#
+# On push to main:
+#   1. Test backend
+#   2. Build frontend
+#   3. Deploy backend → Render (via API trigger)
+#   4. Deploy frontend → Vercel
+#
+# Required GitHub Secrets:
+#   RENDER_API_KEY       — from Render dashboard
+#   RENDER_SERVICE_ID    — your Render service ID
+#   VERCEL_TOKEN         — from Vercel account settings
+#   VERCEL_ORG_ID        — from Vercel project settings
+#   VERCEL_PROJECT_ID    — from Vercel project settings
+#   VITE_API_URL         — your Render backend URL
+# ─────────────────────────────────────────────────────────────────
+
+name: Deploy VCIA
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  # ── Test Backend ──────────────────────────────────────────────
+  test-backend:
+    name: Test Python Backend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run tests
+        run: python -c "
+from color_extractor import extract_colors_from_frame
+from scene_detector import detect_scenes
+from exporter import to_json, to_csv, to_css, to_tailwind, to_ase
+import numpy as np
+
+# Smoke test
+frame = np.zeros((100, 100, 3), dtype=np.uint8)
+frame[:50, :] = [200, 50, 50]
+frame[50:, :] = [50, 50, 200]
+result = extract_colors_from_frame(frame, n_colors=4)
+assert len(result['dominant_colors']) == 4
+assert result['average_color']['hex'].startswith('#')
+print('Backend tests passed')
+"
+
+  # ── Build Frontend ────────────────────────────────────────────
+  build-frontend:
+    name: Build React Frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    needs: test-backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        env:
+          VITE_API_URL: ${{ secrets.VITE_API_URL }}
+          VITE_APP_ENV: production
+        run: npm run build
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+          retention-days: 1
+
+  # ── Deploy Backend → Render ───────────────────────────────────
+  deploy-backend:
+    name: Deploy Backend to Render
+    runs-on: ubuntu-latest
+    needs: build-frontend
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - name: Trigger Render Deploy
+        run: |
+          curl -s -X POST \
+            -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            "https://api.render.com/v1/services/${{ secrets.RENDER_SERVICE_ID }}/deploys" \
+            -d '{"clearCache": false}'
+          echo "Render deploy triggered"
+
+      - name: Wait for backend health
+        run: |
+          echo "Waiting for backend to be healthy..."
+          for i in $(seq 1 24); do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${{ secrets.VITE_API_URL }}/api/health")
+            if [ "$STATUS" = "200" ]; then
+              echo "Backend is healthy!"
+              exit 0
+            fi
+            echo "Attempt $i: status $STATUS, retrying in 10s..."
+            sleep 10
+          done
+          echo "Backend health check timed out"
+          exit 1
+
+  # ── Deploy Frontend → Vercel ──────────────────────────────────
+  deploy-frontend:
+    name: Deploy Frontend to Vercel
+    runs-on: ubuntu-latest
+    needs: deploy-backend
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel@latest
+
+      - name: Deploy to Vercel
+        env:
+          VERCEL_TOKEN:      ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID:     ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          cd frontend
+          vercel deploy --prod --token=$VERCEL_TOKEN \
+            --build-env VITE_API_URL=${{ secrets.VITE_API_URL }}
+
+  # ── Build Desktop App (on tags) ───────────────────────────────
+  build-desktop:
+    name: Build Windows Desktop App
+    runs-on: windows-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: test-backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Python deps + PyInstaller
+        working-directory: backend
+        run: |
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Bundle Python backend
+        working-directory: backend
+        run: pyinstaller vcia_server.spec --clean
+
+      - name: Copy bundled backend to electron
+        run: xcopy /E /I backend\dist\vcia_server electron\backend\vcia_server
+
+      - name: Install frontend + electron deps
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build React app
+        working-directory: frontend
+        env:
+          VITE_API_URL: ''    # Electron uses local backend
+        run: npm run build
+
+      - name: Build Windows installer
+        working-directory: frontend
+        run: npm run electron:build:win
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: vcia-windows-installer
+          path: dist-electron/*.exe
