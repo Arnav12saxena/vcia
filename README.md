@@ -5,6 +5,12 @@
 VCIA is a full-stack AI-powered video analysis platform built for automated scene detection, frame-level analysis, and intelligent export workflows. It allows users to upload videos, detect scene transitions, analyze video structure, and export meaningful segments for content understanding, editing workflows, and research applications.
 
 ---
+## 🌐 Live Demo
+
+### Main Application
+
+🔗 [https://vcia.vercel.app](https://vcia.vercel.app)
+---
 
 ## 🧠 Tech Stack
 
@@ -45,6 +51,15 @@ Build a complete end-to-end platform that can:
 - Analyze frames using OpenCV
 - Track progress in real time
 - Export useful video segments
+
+---
+## 💡 Why This Project Matters
+
+Manual video segmentation is slow, repetitive, and difficult to scale — especially for educational content, media workflows, and content analysis systems.
+
+VCIA was built to automate scene detection, frame-level analysis, and export workflows, reducing manual effort and improving intelligent video understanding.
+
+The goal was not just model development, but building a usable production-grade system that solves a real workflow problem.
 
 ---
 
@@ -118,6 +133,21 @@ The complete workflow was successfully tested end-to-end:
 - ✅ Scene detection
 
 ---
+## 🏆 Project Impact
+
+VCIA is a fully deployed production-grade AI system built using FastAPI, OpenCV, and Vite with cloud deployment on Render and Vercel.
+
+Unlike academic-only projects, this platform was tested in real production conditions with successful video upload, scene detection, frame analysis, and export workflow validation.
+
+This project demonstrates:
+
+- ✅ Full-stack AI system development
+- ✅ Real-world deployment and debugging
+- ✅ Cloud production workflow management
+- ✅ Practical video intelligence engineering
+
+> This is not just a prototype — it is a working product.
+---
 
 # 📁 Project Structure
 
@@ -185,6 +215,38 @@ vcia/
 └── README.md
 ```
 ---
+## 🚀 Run Locally
+
+### Clone Repository
+
+```bash
+git clone https://github.com/Arnav12saxena/vcia.git
+cd vcia
+```
+
+### Backend Setup
+
+```bash
+cd backend
+pip install -r requirements.txt
+uvicorn main:app --reload
+```
+
+Backend runs on: [http://127.0.0.1:8000](http://127.0.0.1:8000)
+
+### Frontend Setup
+
+Open a new terminal:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Frontend runs on: [http://localhost:5173](http://localhost:5173)
+
+---
 
 ## ⚠️ Challenges & Resolutions
 
@@ -220,5 +282,5 @@ VCIA successfully delivers a fully deployed AI-powered video analysis system. Un
 ## 📬 Contact
 
 **Arnav Saxena**
-- 🔗 [LinkedIn](https://www.linkedin.com/in/arnav-saxena-a9a217367)
+- 🔗 [LinkedIn](https://www.linkedin.com/in/arnav-saxena-39113a3a0/)
 - 📧 [arnav12saxena@gmail.com](mailto:arnav12saxena@gmail.com)
