@@ -109,11 +109,11 @@ Frontend deployed on Vercel and connected using:
 
 VITE_API_URL=https://vcia-backend.onrender.com
 
-This enables frontend → backend communication.
+This enables seamless frontend → backend communication.
 
 🧪 Deployment Validation
 
-The complete workflow was successfully tested:
+The complete workflow was successfully tested successfully:
 
 Backend deployment successful
 Frontend deployment successful
@@ -149,20 +149,21 @@ Version Control	Git + GitHub
 Major deployment issues included:
 
 Missing requirements.txt
-Wrong repo structure
+Wrong repository structure
 Root directory issues
 Pillow build failures
 Python 3.14 incompatibility
+Resolved By
 
-Resolved by:
+These issues were resolved through:
 
-Proper GitHub repo restructuring
+Proper GitHub repository restructuring
 Root directory correction
-Python version pinning (3.11)
+Python version pinning to Python 3.11
 Render deployment optimization
 🚀 Future Scope
 
-Possible future upgrades:
+Possible future upgrades include:
 
 AI-powered semantic scene understanding
 Transcript generation
@@ -185,7 +186,6 @@ Unlike academic-only projects, this system was deployed, tested, and validated i
 This is not just a model.
 
 It is a working product.
-
 📁 Project Structure
 vcia/
 │
