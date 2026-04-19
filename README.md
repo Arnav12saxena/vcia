@@ -119,24 +119,76 @@ The complete workflow was successfully tested end-to-end:
 
 ---
 
-## 📁 Project Structure
+# 📁 Project Structure
+
+```text
 vcia/
+│
+├── .github/
+│   └── workflows/
+│       └── deploy.yml
 │
 ├── backend/
 │   ├── main.py
+│   ├── scene_detector.py
+│   ├── video_processor.py
+│   ├── exporter.py
+│   ├── color_extractor.py
 │   ├── requirements.txt
+│   ├── render.yaml
+│   ├── runtime.txt
 │   ├── .python-version
-│   └── render.yaml
+│   ├── Dockerfile
+│   └── railway.toml
 │
 ├── frontend/
+│   ├── public/
+│   │   ├── favicon.svg
+│   │   └── _redirects
+│   │
 │   ├── src/
+│   │   ├── components/
+│   │   │   ├── UploadPanel.jsx
+│   │   │   ├── ProgressBar.jsx
+│   │   │   ├── SceneList.jsx
+│   │   │   ├── ExportPanel.jsx
+│   │   │   ├── FrameInspector.jsx
+│   │   │   ├── ColorTimeline.jsx
+│   │   │   ├── Palette.jsx
+│   │   │   └── StatsSummary.jsx
+│   │   │
+│   │   ├── hooks/
+│   │   │   └── useAnalysis.js
+│   │   │
+│   │   ├── App.jsx
+│   │   ├── main.jsx
+│   │   ├── App.css
+│   │   └── index.css
+│   │
+│   ├── index.html
 │   ├── package.json
-│   └── vite.config.js
+│   ├── vite.config.js
+│   ├── vercel.json
+│   ├── netlify.toml
+│   ├── .env.development
+│   └── .env.production.example
+│
+├── electron/
+│   ├── main.js
+│   ├── preload.js
+│   └── package.json
 │
 ├── docs/
-├── electron/
+│   └── DEPLOYMENT.md
+│
+├── screenshots/
+│   ├── upload-interface.png
+│   └── progress-dashboard.png
+│
+├── .env.example
+├── .gitignore
 └── README.md
-
+```
 ---
 
 ## ⚠️ Challenges & Resolutions
